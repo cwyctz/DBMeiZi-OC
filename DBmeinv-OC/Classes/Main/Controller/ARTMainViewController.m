@@ -19,18 +19,9 @@
 #import <MJExtension/MJExtension.h>
 #import <UIImageView+WebCache.h>
 
-#warning TODO 
-/**
- *  
-    加载新数据
-    上下拉刷新
-    点击放大
- */
-
 @interface ARTMainViewController ()<UICollectionViewDelegateFlowLayout,UICollectionViewDelegate,UICollectionViewDataSource>
 
 @property (nonatomic,strong) NSMutableArray *squareItems;
-@property (nonatomic,strong) NSMutableArray *heightArray;
 
 
 /**保存按钮状态*/
@@ -38,16 +29,19 @@
 
 @property (nonatomic,weak) UICollectionView *collect;
 
-
+@property (nonatomic,strong) AFHTTPSessionManager *request;
 
 @end
 
 @implementation ARTMainViewController
 
-
-
-
 static NSString * const reuseIdentifier = @"Cell";
+
+//列数
+static NSInteger  cols = 2;
+//间距
+static NSInteger margin = 10;
+
 
 #pragma mark - lazy loading
 -(NSMutableArray *)squareItems
@@ -60,13 +54,34 @@ static NSString * const reuseIdentifier = @"Cell";
     return _squareItems;
 }
 
--(NSMutableArray *)heightArray
+-(AFHTTPSessionManager *)request
 {
-    if (_heightArray == nil)
+    if (_request == nil)
     {
-        _heightArray = [NSMutableArray array];
+        NSString * randomUserAgent = ({
+            
+            NSArray * userAgents = @[@"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/47.0.2526.106 Safari/537.36",
+                                     @"Mozilla/5.0 (Windows NT 6.2; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/35.0.1916.114 Safari/537.36",
+                                     @"Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:36.0) Gecko/20100101 Firefox/36.0",
+                                     @"Mozilla/5.0 (Windows NT 6.2; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/27.0.1453.94 Safari/537.36",
+                                     @"Mozilla/5.0 (Macintosh; U; Intel Mac OS X 10_6_6; en-US) AppleWebKit/533.20.25 (KHTML, like Gecko) Version/5.0.4 Safari/533.20.27"];
+            
+            randomUserAgent =  userAgents[arc4random() % userAgents.count];
+            randomUserAgent;
+            
+        });
+        
+        _request =({
+            _request =  [[AFHTTPSessionManager alloc]init];
+            
+            _request.responseSerializer = [AFHTTPResponseSerializer serializer];
+            _request.responseSerializer.acceptableContentTypes = [NSSet setWithObjects:@"application/json", @"text/plain", @"text/javascript", @"text/json", @"text/html", nil];
+            _request;
+        });
+        
+        [_request.requestSerializer setValue:randomUserAgent forHTTPHeaderField:@"User-Agent"];
     }
-    return _heightArray;
+    return _request;
 }
 
 #pragma mark - life cicyle
@@ -79,20 +94,13 @@ static NSString * const reuseIdentifier = @"Cell";
     
     [self refreshAction];
     
-
-    
     self.navigationItem.title = @"豆瓣妹子";
     
-    
-
 }
-
 -(ARTTopicType)type
 {
-    return daxiong;
+    return yanzhi;
 }
-
-
 -(void)setUptitleView
 {
 
@@ -119,7 +127,6 @@ static NSString * const reuseIdentifier = @"Cell";
     [self.view addSubview: titleView];
 
 }
-
 -(void)switchPage:(UIButton *)button
 {
     self.preButton.selected = NO;
@@ -138,15 +145,13 @@ static NSString * const reuseIdentifier = @"Cell";
     
     // 下拉刷新
     self.collect.mj_header= [MJRefreshNormalHeader headerWithRefreshingBlock:^{
+        NSLog(@"下拉刷新线程%@",[NSThread currentThread]);
 
-        
             [self loadDate];
 
-            [weakSelf.collect reloadData];
-            
+//            [weakSelf.collect reloadData];
             // 结束刷新
             [weakSelf.collect.mj_header endRefreshing];
-        
     }];
     [self.collect.mj_header beginRefreshing];
     
@@ -157,7 +162,6 @@ static NSString * const reuseIdentifier = @"Cell";
 
             [weakSelf.collect reloadData];
         
-//        [self.heightArray removeAllObjects];
         
             // 结束刷新
             [weakSelf.collect.mj_footer endRefreshing];
@@ -174,101 +178,91 @@ static NSString * const reuseIdentifier = @"Cell";
 {
     
     [self.squareItems removeAllObjects];
-    [self.heightArray removeAllObjects];
-    
-    NSString * randomUserAgent = ({
-        
-        NSArray * userAgents = @[@"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/47.0.2526.106 Safari/537.36",
-                                 @"Mozilla/5.0 (Windows NT 6.2; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/35.0.1916.114 Safari/537.36",
-                                 @"Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:36.0) Gecko/20100101 Firefox/36.0",
-                                 @"Mozilla/5.0 (Windows NT 6.2; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/27.0.1453.94 Safari/537.36",
-                                 @"Mozilla/5.0 (Macintosh; U; Intel Mac OS X 10_6_6; en-US) AppleWebKit/533.20.25 (KHTML, like Gecko) Version/5.0.4 Safari/533.20.27"];
-        
-        randomUserAgent =  userAgents[arc4random() % userAgents.count];
-        randomUserAgent;
-        
-    });
-    
-    AFHTTPSessionManager *request =({
-        request =  [[AFHTTPSessionManager alloc]init];
-        
-        request.responseSerializer = [AFHTTPResponseSerializer serializer];
-        request.responseSerializer.acceptableContentTypes = [NSSet setWithObjects:@"application/json", @"text/plain", @"text/javascript", @"text/json", @"text/html", nil];
-        request;
-    });
-    
-    [request.requestSerializer setValue:randomUserAgent forHTTPHeaderField:@"User-Agent"];
-    
-    
-    
+
     NSDictionary *parameters = @{@"cid":@(self.type),
                                  @"pager_offset":@1
                                  };
-    
-    
-    
-    [request GET:BASE_URL parameters:parameters progress:^(NSProgress * _Nonnull downloadProgress)
-    {
-    
-        NSLog(@"%f",1.0 * downloadProgress.completedUnitCount / downloadProgress.totalUnitCount);
-    
-    }  success:^(NSURLSessionDataTask * _Nonnull task, id  _Nullable responseObject)
-     {
-         NSData *data = responseObject;
-         
-         ONOXMLDocument * document = [ONOXMLDocument HTMLDocumentWithData:data error:nil];
-         
-         NSString * olPath = @"//*[@id=\"main\"]/div[2]/div[2]/ul[@class=\"thumbnails\"]";
-         
-         
-         ONOXMLElement * olELement = [document firstChildWithXPath:olPath];
-         NSArray * olElementChildern = olELement.children;
-         
-         NSMutableArray *tempArr = [NSMutableArray array];
-         for (NSUInteger index = 1; index < olElementChildern.count +1; index ++)
+
+
+        [self.request GET:BASE_URL parameters:parameters progress:^(NSProgress * _Nonnull downloadProgress)
          {
-             NSString *liXPath  = [NSString stringWithFormat:@"//*[@id=\"main\"]/div[2]/div[2]/ul/li[%ld]/div/div[1]/a/img",index];
              
-             ONOXMLElement * liElement = [olELement firstChildWithXPath:liXPath];
+             NSLog(@"%f",1.0 * downloadProgress.completedUnitCount / downloadProgress.totalUnitCount);
              
-             [tempArr addObject:liElement.attributes];
-         }
-         
-         for (NSDictionary *dic in tempArr) {
-             ARTImageItems * item = [[ARTImageItems alloc] init];
-             item.src = dic[@"src"];
+         }  success:^(NSURLSessionDataTask * _Nonnull task, id  _Nullable responseObject)
+         {
+             NSData *data = responseObject;
              
-             NSURL *url = [NSURL URLWithString:item.src];
-             NSData * data = [NSData dataWithContentsOfURL:url];
-             UIImage * image = [UIImage imageWithData:data];
-            
-             CGSize currentSize = image.size;
+
+          
+             NSOperationQueue *queue = [[NSOperationQueue alloc]init];
+             
+             [queue addOperationWithBlock:^{
+                              [self dealWithHtml:data];
+                 
+                 [[NSOperationQueue mainQueue]addOperationWithBlock:^{
+                                  [self.collect reloadData];
+                 }];
+             }];
+             
+             
+
 
              
-             //列数
-             NSInteger  cols = 2;
-             //间距
-             NSInteger margin = 10;
-             
-             //当前的尺寸
-             CGFloat   currentW = ([UIScreen mainScreen].bounds.size.width - margin *(1 + cols)) / cols ;
-             currentSize.height = currentW * image.size.height / image.size.width;
-             currentSize.width = currentW;
-             item.cellSize = currentSize;
-//             static int i = 1;
-             [self.squareItems addObject:item];
-             [self.heightArray addObject:[NSString stringWithFormat:@"%f",currentSize.height]];
-         }
-//         self.squareItems = [ARTImageItems mj_objectArrayWithKeyValuesArray:tempArr];
-         
-      
-         
-         [self.collect reloadData];
-         
-     } failure:^(NSURLSessionDataTask * _Nullable task, NSError * _Nonnull error) {
-         NSLog(@"%@",error);
-     }];
+         } failure:^(NSURLSessionDataTask * _Nullable task, NSError * _Nonnull error) {
+             NSLog(@"%@",error);
+         }];
     
+}
+/**解析Html数据*/
+-(void)dealWithHtml:(NSData *)data
+{
+    ONOXMLDocument * document = [ONOXMLDocument HTMLDocumentWithData:data error:nil];
+    
+    NSString * olPath = @"//*[@id=\"main\"]/div[2]/div[2]/ul[@class=\"thumbnails\"]";
+
+    
+    ONOXMLElement * olELement = [document firstChildWithXPath:olPath];
+    NSArray * olElementChildern = olELement.children;
+    
+    NSMutableArray *tempArr = [NSMutableArray array];
+    for (NSUInteger index = 1; index < olElementChildern.count +1; index ++)
+    {
+        NSString *liXPath  = [NSString stringWithFormat:@"//*[@id=\"main\"]/div[2]/div[2]/ul/li[%ld]/div/div[1]/a/img",index];
+        
+        ONOXMLElement * liElement = [olELement firstChildWithXPath:liXPath];
+        
+        [tempArr addObject:liElement.attributes];
+    }
+
+
+
+    for (NSDictionary *dic in tempArr)
+    {
+        ARTImageItems * item = [[ARTImageItems alloc] init];
+        item.src = dic[@"src"];
+  
+        NSLog(@"%@",[NSThread currentThread]);
+        
+            NSURL *url = [NSURL URLWithString:item.src];
+            NSData * data = [NSData dataWithContentsOfURL:url];
+            UIImage * image = [UIImage imageWithData:data];
+            
+            CGSize currentSize = image.size;
+            
+            
+            //当前的尺寸
+            CGFloat   currentW = ([UIScreen mainScreen].bounds.size.width - margin *(1 + cols)) / cols ;
+            currentSize.height = currentW * image.size.height / image.size.width;
+            currentSize.width = currentW;
+            item.cellSize = currentSize;
+            [self.squareItems addObject:item];
+        
+
+        
+    }
+    
+
 
 }
 
@@ -276,89 +270,24 @@ static NSString * const reuseIdentifier = @"Cell";
 {
 
   static  NSInteger i = 2;
-    NSString * randomUserAgent = ({
-        
-        NSArray * userAgents = @[@"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/47.0.2526.106 Safari/537.36",
-                                 @"Mozilla/5.0 (Windows NT 6.2; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/35.0.1916.114 Safari/537.36",
-                                 @"Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:36.0) Gecko/20100101 Firefox/36.0",
-                                 @"Mozilla/5.0 (Windows NT 6.2; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/27.0.1453.94 Safari/537.36",
-                                 @"Mozilla/5.0 (Macintosh; U; Intel Mac OS X 10_6_6; en-US) AppleWebKit/533.20.25 (KHTML, like Gecko) Version/5.0.4 Safari/533.20.27"];
-        
-        randomUserAgent =  userAgents[arc4random() % userAgents.count];
-        randomUserAgent;
-        
-    });
-    
-    AFHTTPSessionManager *request =({
-        request =  [[AFHTTPSessionManager alloc]init];
-        
-        request.responseSerializer = [AFHTTPResponseSerializer serializer];
-        request.responseSerializer.acceptableContentTypes = [NSSet setWithObjects:@"application/json", @"text/plain", @"text/javascript", @"text/json", @"text/html", nil];
-        request;
-    });
-    
-    [request.requestSerializer setValue:randomUserAgent forHTTPHeaderField:@"User-Agent"];
-    
-    
+
     NSDictionary *parameters = @{@"cid":@(self.type),
                                  @"pager_offset":@(i)
                                  };
     
-    
-    [request GET:BASE_URL parameters:parameters progress:nil success:^(NSURLSessionDataTask * _Nonnull task, id  _Nullable responseObject)
+    [self.request GET:BASE_URL parameters:parameters progress:nil success:^(NSURLSessionDataTask * _Nonnull task, id  _Nullable responseObject)
      {
          NSData *data = responseObject;
          
-         ONOXMLDocument * document = [ONOXMLDocument HTMLDocumentWithData:data error:nil];
+         NSOperationQueue *queue = [[NSOperationQueue alloc]init];
          
-         NSString * olPath = @"//*[@id=\"main\"]/div[2]/div[2]/ul[@class=\"thumbnails\"]";
-         
-         
-         ONOXMLElement * olELement = [document firstChildWithXPath:olPath];
-         NSArray * olElementChildern = olELement.children;
-         
-         NSMutableArray *tempArr = [NSMutableArray array];
-         for (NSUInteger index = 1; index < olElementChildern.count +1; index ++)
-         {
-             NSString *liXPath  = [NSString stringWithFormat:@"//*[@id=\"main\"]/div[2]/div[2]/ul/li[%ld]/div/div[1]/a/img",index];
+         [queue addOperationWithBlock:^{
+             [self dealWithHtml:data];
              
-             ONOXMLElement * liElement = [olELement firstChildWithXPath:liXPath];
-             
-             [tempArr addObject:liElement.attributes];
-         }
-         
-         for (NSDictionary *dic in tempArr) {
-             ARTImageItems * item = [[ARTImageItems alloc] init];
-             item.src = dic[@"src"];
-             
-             NSURL *url = [NSURL URLWithString:item.src];
-             NSData * data = [NSData dataWithContentsOfURL:url];
-             UIImage * image = [UIImage imageWithData:data];
-             
-             CGSize currentSize = image.size;
-             
-             //列数
-             NSInteger  cols = 2;
-             //间距
-             NSInteger margin = 10;
-             
-             //当前的尺寸
-             CGFloat   currentW = ([UIScreen mainScreen].bounds.size.width - margin *(1 + cols)) / cols ;
-             currentSize.height = currentW * image.size.height / image.size.width;
-             currentSize.width = currentW;
-             item.cellSize = currentSize;
-             static int i = 1;
-             NSLog(@"%i  ==== %lf",i++ , currentSize.height);
-             [self.squareItems addObject:item];
-             
-             [self.heightArray addObject:[NSString stringWithFormat:@"%f",currentSize.height]];
-         }
-//         NSMutableArray *moreArr = [ARTImageItems mj_objectArrayWithKeyValuesArray:tempArr];
-         
-//         [self.squareItems addObjectsFromArray:moreArr];
-         
-         
-         [self.collect reloadData];
+             [[NSOperationQueue mainQueue]addOperationWithBlock:^{
+                 [self.collect reloadData];
+             }];
+         }];
          
      } failure:^(NSURLSessionDataTask * _Nullable task, NSError * _Nonnull error) {
          NSLog(@"%@",error);
@@ -371,7 +300,6 @@ static NSString * const reuseIdentifier = @"Cell";
 #pragma mark - 数据源
 -(void)setUpCollectionView
 {
-    
     
     UICollectionViewFlowLayout *layout = ({
         
@@ -392,28 +320,34 @@ static NSString * const reuseIdentifier = @"Cell";
     
     collect.contentInset = UIEdgeInsetsMake(35, 0, 0, 0);
     
-    
-    
-    [collect registerClass:[UICollectionViewCell class] forCellWithReuseIdentifier:reuseIdentifier];
+    [collect registerClass:[ARTCollectionViewCell class] forCellWithReuseIdentifier:reuseIdentifier];
     
     [self.view addSubview:collect];
     
     self.collect = collect;
-
-
-
 }
 
 - (CGSize)collectionView:(UICollectionView *)collectionView layout:(UICollectionViewLayout*)collectionViewLayout sizeForItemAtIndexPath:(NSIndexPath *)indexPath
 {
-
-    
     ARTImageItems *item = self.squareItems[indexPath.row];
     
-
+    // 从内存\沙盒缓存中获得原图
+    UIImage *originalImage = [[SDImageCache sharedImageCache] imageFromDiskCacheForKey:item.src];
     
-    return  item.cellSize;
+    if (originalImage)
+    {
+        
+        CGSize currentSize = originalImage.size;
 
+        //当前的尺寸
+        CGFloat   currentW = ([UIScreen mainScreen].bounds.size.width - margin *(1 + cols)) / cols ;
+        currentSize.height = currentW * originalImage.size.height / originalImage.size.width;
+        currentSize.width = currentW;
+        
+        return currentSize;
+    }
+
+    return  item.cellSize;
 }
 
 - (NSInteger)collectionView:(UICollectionView *)collectionView numberOfItemsInSection:(NSInteger)section
@@ -421,87 +355,18 @@ static NSString * const reuseIdentifier = @"Cell";
     // 设置尾部控件的显示和隐藏
     self.collect.mj_footer.hidden = self.squareItems.count == 0;
     return self.squareItems.count;
+
 }
 
 - (UICollectionViewCell *)collectionView:(UICollectionView *)collectionView cellForItemAtIndexPath:(NSIndexPath *)indexPath
 {
     ARTCollectionViewCell *cell = [collectionView dequeueReusableCellWithReuseIdentifier:reuseIdentifier forIndexPath:indexPath];
-    //列数
-    NSInteger  cols = 2;
-    //间距
-    NSInteger margin = 10;
-    //当前列
-    NSInteger currentCol = indexPath.row % cols;
-    //当前行
-    NSInteger currentRow = indexPath.row / cols;
-    //当前的尺寸
-    CGFloat   currentW = ([UIScreen mainScreen].bounds.size.width - margin *(1 + cols)) / cols ;
-    CGFloat   currentH = [self.heightArray[indexPath.row] floatValue];
-
-    //当前的位置
-    CGFloat positionX = currentW * currentCol + margin * (currentCol + 1);
-    CGFloat positionY = (currentRow + 1) * margin;
-    //求Y值
-    for (NSInteger i = 0; i < currentRow; i++)
-    {   //当前是第几个
-        NSInteger position = currentCol + i * cols;
-        
-        positionY += [self.heightArray[position] floatValue];
-
-    }
-
-    cell.frame = CGRectMake(positionX,positionY,currentW,currentH) ;
-    
-    cell.backgroundColor = [UIColor redColor];
-    
-    //添加图片
-    UIImageView *imageV = [[UIImageView alloc]initWithFrame:cell.bounds];
-    imageV.contentMode = UIViewContentModeScaleAspectFit;
     
     ARTImageItems *item = self.squareItems[indexPath.row];
-    
-    NSURL *url = [NSURL URLWithString:item.src];
-    
-    
-    
-    // 从内存\沙盒缓存中获得原图
-    UIImage *originalImage = [[SDImageCache sharedImageCache] imageFromDiskCacheForKey:item.src];
-    
-    if (originalImage) { // 如果内存\沙盒缓存有原图，那么就直接显示原图（不管现在是什么网络状态）
-        
-        static int i  = 0;
-        
-        NSLog(@"缓存po 到第%dcell",i++);
-        [imageV sd_setImageWithURL:[NSURL URLWithString:item.src] completed:nil];
-    }else{
-        [imageV sd_setImageWithURL:url placeholderImage:nil completed:^(UIImage *image, NSError *error, SDImageCacheType cacheType, NSURL *imageURL)
-         {
-             CGSize currentSize = image.size;
-             currentSize.height = currentW * image.size.height / image.size.width;
-             currentSize.width = currentW;
-             UIGraphicsBeginImageContextWithOptions(currentSize, NO, 0);
-             [image drawInRect:CGRectMake(0, 0, currentSize.width, currentSize.height)];
-             UIImage * newImage = UIGraphicsGetImageFromCurrentImageContext();
-             UIGraphicsEndImageContext();
-             imageV.image = newImage;
-         }];
-        
-
-        NSLog(@"高度%fcell",imageV.image.size.height);
-
-    }
-    
-
-
-    //防止图片被循环利用
-    for (UIView * view in cell.subviews) {
-        if ([view isKindOfClass:[UIImageView class]]) {
-            [view removeFromSuperview];
-        }
-    }
-    
-    [cell addSubview:imageV];
-    
+    //设置数据
+    cell.imageItem = item;
+    //瀑布流计算
+    cell.frame = [cell layoutWithIndexPath:indexPath itemsArray:self.squareItems];
     
     return cell;
 }
@@ -513,10 +378,5 @@ static NSString * const reuseIdentifier = @"Cell";
 
 }
 
-
-//- (void)scrollViewDidScroll:(UIScrollView *)scrollView
-//{
-//    NSLog(@"%zd %zd",self.heightArray.count , self.squareItems.count);
-//}
 
 @end

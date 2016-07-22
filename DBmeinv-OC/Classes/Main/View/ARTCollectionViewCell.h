@@ -8,6 +8,12 @@
 
 #import <UIKit/UIKit.h>
 
+@class ARTImageItems;
 @interface ARTCollectionViewCell : UICollectionViewCell
+
+@property (nonatomic,strong) ARTImageItems *imageItem;
+
+
+-(CGRect)layoutWithIndexPath:(NSIndexPath *)IndexPath itemsArray:(NSArray *)array;
 
 @end
