@@ -61,9 +61,9 @@
 
 -(void)setART_centerX:(CGFloat)ART_centerX
 {
-    CGRect rect = self.frame;
-    rect.origin.x = ART_centerX;
-    self.frame = rect;
+    CGPoint center = self.center;
+    center.x = ART_centerX;
+    self.center = center;
 }
 
 -(CGFloat)ART_centerY
@@ -72,9 +72,10 @@
 }
 -(void)setART_centerY:(CGFloat)ART_centerY
 {
-    CGRect rect = self.frame;
-    rect.origin.x = ART_centerY;
-    self.frame = rect;
+    
+    CGPoint center = self.center;
+    center.y = ART_centerY;
+    self.center = center;
 
 }
 @end

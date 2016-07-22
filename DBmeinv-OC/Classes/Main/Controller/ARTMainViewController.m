@@ -10,6 +10,7 @@
 
 #import "ARTMainViewController.h"
 #import "ARTCollectionViewCell.h"
+#import "ARTSeeBigPictureViewController.h"
 #import "ARTImageItems.h"
 #import "UIView+Frame.h"
 
@@ -29,7 +30,7 @@
 
 @property (nonatomic,weak) UICollectionView *collect;
 
-@property (nonatomic,strong) AFHTTPSessionManager *request;
+@property (nonatomic,strong) AFHTTPSessionManager *manager;
 
 @end
 
@@ -54,9 +55,9 @@ static NSInteger margin = 10;
     return _squareItems;
 }
 
--(AFHTTPSessionManager *)request
+-(AFHTTPSessionManager *)manager
 {
-    if (_request == nil)
+    if (_manager == nil)
     {
         NSString * randomUserAgent = ({
             
@@ -71,17 +72,17 @@ static NSInteger margin = 10;
             
         });
         
-        _request =({
-            _request =  [[AFHTTPSessionManager alloc]init];
+        _manager =({
+            _manager =  [[AFHTTPSessionManager alloc]init];
             
-            _request.responseSerializer = [AFHTTPResponseSerializer serializer];
-            _request.responseSerializer.acceptableContentTypes = [NSSet setWithObjects:@"application/json", @"text/plain", @"text/javascript", @"text/json", @"text/html", nil];
-            _request;
+            _manager.responseSerializer = [AFHTTPResponseSerializer serializer];
+            _manager.responseSerializer.acceptableContentTypes = [NSSet setWithObjects:@"application/json", @"text/plain", @"text/javascript", @"text/json", @"text/html", nil];
+            _manager;
         });
         
-        [_request.requestSerializer setValue:randomUserAgent forHTTPHeaderField:@"User-Agent"];
+        [_manager.requestSerializer setValue:randomUserAgent forHTTPHeaderField:@"User-Agent"];
     }
-    return _request;
+    return _manager;
 }
 
 #pragma mark - life cicyle
@@ -92,15 +93,14 @@ static NSInteger margin = 10;
     [self setUpCollectionView];
     [self setUptitleView];
     
-    [self refreshAction];
+//    [self refreshAction];
     
     self.navigationItem.title = @"豆瓣妹子";
     
 }
--(ARTTopicType)type
-{
-    return yanzhi;
-}
+
+
+
 -(void)setUptitleView
 {
 
@@ -113,7 +113,7 @@ static NSInteger margin = 10;
         CGFloat btnX = i * titleView.bounds.size.width / titleArr.count;
         CGFloat btnW = titleView.bounds.size.width / titleArr.count;
         UIButton  *btn = [[UIButton alloc]initWithFrame:CGRectMake(btnX, 0, btnW, 35)];
-        
+        btn.tag = i + 1;
         [btn setTitle:titleArr[i] forState:UIControlStateNormal];
         
         [btn setTitleColor:[UIColor redColor] forState:UIControlStateSelected];
@@ -124,28 +124,37 @@ static NSInteger margin = 10;
         [titleView addSubview:btn];
         
     }
+    
+    [self switchPage:titleView.subviews.firstObject];
+    
     [self.view addSubview: titleView];
 
+    
 }
 -(void)switchPage:(UIButton *)button
 {
     self.preButton.selected = NO;
-    
     button.selected = !button.selected;
-
-   self.preButton = button;
-
+    self.preButton = button;
+    
+    self.type  =  button.tag + 1;
+    
+//    [self.manager invalidateSessionCancelingTasks:YES];
+    [self.manager.tasks makeObjectsPerformSelector:@selector(cancel)];
+    
+    [self refreshAction];
 }
 
 #pragma mark - 上下拉刷新控件
 -(void)refreshAction
 {
+    [self.squareItems removeAllObjects];
+    [self.collect reloadData];
 
     __unsafe_unretained __typeof(self) weakSelf = self;
     
     // 下拉刷新
     self.collect.mj_header= [MJRefreshNormalHeader headerWithRefreshingBlock:^{
-        NSLog(@"下拉刷新线程%@",[NSThread currentThread]);
 
             [self loadDate];
 
@@ -177,17 +186,17 @@ static NSInteger margin = 10;
 -(void)loadDate
 {
     
-    [self.squareItems removeAllObjects];
+//    [self.squareItems removeAllObjects];
 
     NSDictionary *parameters = @{@"cid":@(self.type),
                                  @"pager_offset":@1
                                  };
 
 
-        [self.request GET:BASE_URL parameters:parameters progress:^(NSProgress * _Nonnull downloadProgress)
+        [self.manager GET:BASE_URL parameters:parameters progress:^(NSProgress * _Nonnull downloadProgress)
          {
              
-             NSLog(@"%f",1.0 * downloadProgress.completedUnitCount / downloadProgress.totalUnitCount);
+             NSLog(@"%0.2f",1.0 * downloadProgress.completedUnitCount / downloadProgress.totalUnitCount);
              
          }  success:^(NSURLSessionDataTask * _Nonnull task, id  _Nullable responseObject)
          {
@@ -198,7 +207,7 @@ static NSInteger margin = 10;
              NSOperationQueue *queue = [[NSOperationQueue alloc]init];
              
              [queue addOperationWithBlock:^{
-                              [self dealWithHtml:data];
+                 self.squareItems = [self dealWithHtml:data];
                  
                  [[NSOperationQueue mainQueue]addOperationWithBlock:^{
                                   [self.collect reloadData];
@@ -210,12 +219,12 @@ static NSInteger margin = 10;
 
              
          } failure:^(NSURLSessionDataTask * _Nullable task, NSError * _Nonnull error) {
-             NSLog(@"%@",error);
+             NSLog(@"-----%@",error);
          }];
     
 }
 /**解析Html数据*/
--(void)dealWithHtml:(NSData *)data
+-(NSMutableArray *)dealWithHtml:(NSData *)data
 {
     ONOXMLDocument * document = [ONOXMLDocument HTMLDocumentWithData:data error:nil];
     
@@ -235,14 +244,12 @@ static NSInteger margin = 10;
         [tempArr addObject:liElement.attributes];
     }
 
-
+    NSMutableArray *arr = [NSMutableArray array];
 
     for (NSDictionary *dic in tempArr)
     {
         ARTImageItems * item = [[ARTImageItems alloc] init];
         item.src = dic[@"src"];
-  
-        NSLog(@"%@",[NSThread currentThread]);
         
             NSURL *url = [NSURL URLWithString:item.src];
             NSData * data = [NSData dataWithContentsOfURL:url];
@@ -256,33 +263,31 @@ static NSInteger margin = 10;
             currentSize.height = currentW * image.size.height / image.size.width;
             currentSize.width = currentW;
             item.cellSize = currentSize;
-            [self.squareItems addObject:item];
         
-
-        
+            [arr addObject:item];
     }
     
+    return  arr;
 
 
 }
 
 -(void)loadMoreDate
 {
-
   static  NSInteger i = 2;
 
     NSDictionary *parameters = @{@"cid":@(self.type),
                                  @"pager_offset":@(i)
                                  };
     
-    [self.request GET:BASE_URL parameters:parameters progress:nil success:^(NSURLSessionDataTask * _Nonnull task, id  _Nullable responseObject)
+    [self.manager GET:BASE_URL parameters:parameters progress:nil success:^(NSURLSessionDataTask * _Nonnull task, id  _Nullable responseObject)
      {
          NSData *data = responseObject;
          
          NSOperationQueue *queue = [[NSOperationQueue alloc]init];
          
          [queue addOperationWithBlock:^{
-             [self dealWithHtml:data];
+             [self.squareItems addObjectsFromArray:[self dealWithHtml:data]];
              
              [[NSOperationQueue mainQueue]addOperationWithBlock:^{
                  [self.collect reloadData];
@@ -374,7 +379,12 @@ static NSInteger margin = 10;
 #pragma mark - 代理方法
 -(void)collectionView:(UICollectionView *)collectionView didSelectItemAtIndexPath:(NSIndexPath *)indexPath
 {
+    ARTSeeBigPictureViewController *vc = [[ARTSeeBigPictureViewController alloc]init];
+    vc.imageItem = self.squareItems[indexPath.row];
+//    [self presentViewController:vc animated:YES completion:nil];
 
+    
+    [self.collect.window.rootViewController presentViewController:vc animated:YES completion:nil];
 
 }
 

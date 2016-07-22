@@ -7,7 +7,10 @@
 //
 
 #import <UIKit/UIKit.h>
+@class ARTImageItems;
 
 @interface ARTSeeBigPictureViewController : UIViewController
 
+
+@property (nonatomic,strong) ARTImageItems *imageItem;
 @end

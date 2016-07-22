@@ -20,6 +20,7 @@ typedef NS_ENUM(NSUInteger , ARTTopicType)
 
 @interface ARTMainViewController : UIViewController
 
-- (ARTTopicType)type;
+@property (nonatomic,assign) NSUInteger type;
+//- (ARTTopicType)type;
 
 @end
