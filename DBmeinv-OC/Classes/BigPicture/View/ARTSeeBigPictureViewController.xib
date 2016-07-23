@@ -29,7 +29,7 @@
                         <action selector="backBtnClick:" destination="-1" eventType="touchUpInside" id="WLM-Z5-c3w"/>
                     </connections>
                 </button>
-                <button opaque="NO" contentMode="scaleToFill" enabled="NO" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="roundedRect" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="Hb5-4h-JQe" userLabel="保存">
+                <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="roundedRect" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="Hb5-4h-JQe" userLabel="保存">
                     <rect key="frame" x="295" y="597" width="70" height="30"/>
                     <color key="backgroundColor" red="0.63725842929999998" green="0.55604954770000004" blue="0.4749434622" alpha="0.23673669759999999" colorSpace="calibratedRGB"/>
                     <constraints>
