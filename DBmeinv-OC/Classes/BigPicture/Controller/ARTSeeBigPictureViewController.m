@@ -47,7 +47,7 @@
     
     }];
 
-//    [self.view addSubview:view];
+
     
 }
 - (IBAction)SaveBtnClick:(UIButton *)sender {

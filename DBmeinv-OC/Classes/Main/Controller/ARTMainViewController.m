@@ -16,6 +16,7 @@
 
 #import "AFNetworking.h"
 #import "MJRefresh.h"
+#import <pop/POP.h>
 #import <Ono/ONOXMLDocument.h>
 #import <MJExtension/MJExtension.h>
 #import <UIImageView+WebCache.h>
@@ -319,11 +320,12 @@ static NSInteger margin = 10;
         collect = [[UICollectionView alloc]initWithFrame:[UIScreen mainScreen].bounds collectionViewLayout:layout];
         collect.delegate = self;
         collect.dataSource = self;
+        collect.contentInset = UIEdgeInsetsMake(35, 0, 0, 0);
         collect.backgroundColor = [UIColor grayColor];
         collect;
     });
     
-    collect.contentInset = UIEdgeInsetsMake(35, 0, 0, 0);
+
     
     [collect registerClass:[ARTCollectionViewCell class] forCellWithReuseIdentifier:reuseIdentifier];
     
